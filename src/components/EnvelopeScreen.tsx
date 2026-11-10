@@ -433,6 +433,19 @@ export default function EnvelopeScreen() {
             </span>
           </button>
 
+          {!open && invite === "hidden" && (
+            <button
+              type="button"
+              className="tap-open-hint serif"
+              onClick={(event) => {
+                event.stopPropagation();
+                openEnvelope();
+              }}
+            >
+              Tap to open
+            </button>
+          )}
+
           {/* ===== Confetti burst when the seal breaks ===== */}
           {open && <Burst />}
           {open && invite === "hidden" && <ScrollHint onClick={advanceOnScroll} />}

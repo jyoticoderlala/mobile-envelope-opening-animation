@@ -569,6 +569,43 @@
   display: block;
   animation: sealPop 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) 0.5s both;
 }
+.tap-open-hint {
+  position: absolute;
+  left: 50%;
+  bottom: calc(142px + max(16px, env(safe-area-inset-bottom, 0px)));
+  z-index: 12;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  padding: 4px 10px;
+  border: 0;
+  background: transparent;
+  color: #f0d5aa;
+  font-size: 1.1rem;
+  font-style: italic;
+  letter-spacing: .08em;
+  white-space: nowrap;
+  text-shadow: 0 1px 8px rgba(35, 12, 20, .6);
+  cursor: pointer;
+  animation: tapOpenGlow 3s ease-in-out infinite;
+}
+.tap-open-hint::before, .tap-open-hint::after {
+  content: "";
+  width: 28px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #d9bb8a);
+}
+.tap-open-hint::after { transform: rotate(180deg); }
+.tap-open-hint:focus-visible { outline: 1px solid currentColor; outline-offset: 3px; border-radius: 4px; }
+@keyframes tapOpenGlow { 0%, 100% { opacity: .7; } 50% { opacity: 1; } }
+@media (max-height: 540px) {
+  .tap-open-hint { bottom: calc(98px + env(safe-area-inset-bottom, 0px)); font-size: .95rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tap-open-hint { animation: none; }
+}
 .seal-in::after,
 .iv-close-seal::after {
   content: "";
