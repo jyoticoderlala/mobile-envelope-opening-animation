@@ -30,11 +30,11 @@ import heroSection from "@/assets/sr-5.webp";
 
 /* ------- Live CDN imagery ------- */
 const HERO_IMAGES = [
-  { src: heroSection, alt: "A joyful family moment" },
+  { src: heroSection, alt: "A joyful family moment", shortPosition: "50% 5%" },
   // { src: bright_lights_warm_love, alt: "Bright lights and warm love" },
   // { src: flowers_for_a_lasting_love, alt: "Flowers for a lasting love" },
   // { src: never_letting_go, alt: "Never letting go" },
-  { src: our_favorite_love_story, alt: "Our favorite love story" },
+  { src: our_favorite_love_story, alt: "Our favorite love story", shortPosition: "50% 30%" },
   // { src: she_said_yes_again_and_again, alt: "She said yes again and again" },
   // { src: silver_looks_good_on_us, alt: "Silver looks good on us" },
   // { src: to_every_sunset_together, alt: "Together through every sunset" },
@@ -365,6 +365,7 @@ export default function Invitation(props: {
               className={`iv-hero-img${index === heroIndex ? " is-active" : ""}`}
               src={image.src}
               alt={image.alt}
+              style={{ "--hero-short-position": image.shortPosition } as CSSProperties}
               aria-hidden={index !== heroIndex}
             />
           ))}

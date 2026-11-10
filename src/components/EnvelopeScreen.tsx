@@ -102,7 +102,7 @@ export default function EnvelopeScreen() {
     resumeMusicOnReturn.current = false;
     const music = musicRef.current;
     if (!music) return;
-    if (manuallyMuted.current || (music.paused && !playPending.current)) {
+    if (manuallyMuted.current) {
       manuallyMuted.current = false;
       backgroundPaused.current = false;
       setMusicMuted(false);
@@ -151,6 +151,11 @@ export default function EnvelopeScreen() {
 
   useEffect(() => {
     const music = musicRef.current;
+    // Default to sound on. Browsers that block autoplay will retry on opening.
+    if (music && !manuallyMuted.current) {
+      music.muted = false;
+      playMusic();
+    }
     return () => {
       clearTimers();
       ++playRequest.current;
@@ -165,7 +170,7 @@ export default function EnvelopeScreen() {
   useEffect(() => {
     const resume = () => {
       const music = musicRef.current;
-      if (document.hidden || !document.hasFocus() || !music) return;
+      if (document.hidden || !music) return;
       backgroundPaused.current = false;
       if (!resumeMusicOnReturn.current || manuallyMuted.current) return;
       resumeMusicOnReturn.current = false;
@@ -175,13 +180,13 @@ export default function EnvelopeScreen() {
       if (document.hidden) pauseBackgroundMusic();
       else resume();
     };
-    window.addEventListener("blur", pauseBackgroundMusic);
+    // Volume panels and browser controls can blur a visible page. Only an
+    // actual visibility change or navigation should pause the soundtrack.
     window.addEventListener("focus", resume);
     window.addEventListener("pagehide", pauseBackgroundMusic);
     window.addEventListener("pageshow", resume);
     document.addEventListener("visibilitychange", onVisibilityChange);
     return () => {
-      window.removeEventListener("blur", pauseBackgroundMusic);
       window.removeEventListener("focus", resume);
       window.removeEventListener("pagehide", pauseBackgroundMusic);
       window.removeEventListener("pageshow", resume);
@@ -208,10 +213,6 @@ export default function EnvelopeScreen() {
     <div
       className={`env-screen${open ? " is-open" : ""}`}
       style={style}
-      onClickCapture={(event) => {
-        const target = event.target;
-        if (target instanceof Element && target.closest('a[target="_blank"]')) pauseBackgroundMusic();
-      }}
       onClick={invite === "hidden" ? openEnvelope : undefined}
       onWheel={(event) => {
         if (event.deltaY > 0) advanceOnScroll();
@@ -230,7 +231,7 @@ export default function EnvelopeScreen() {
       <audio
         ref={musicRef}
         muted={musicMuted}
-        preload="none"
+        preload="auto"
         src={getSongSource(SONGS[songIndex])}
         onError={useRemoteFallback}
         onPlay={(event) => {
@@ -246,34 +247,21 @@ export default function EnvelopeScreen() {
       <button
         type="button"
         className="music-corner-toggle"
-        aria-label={musicPlaying && !musicMuted ? "Mute music" : "Unmute music"}
-        aria-pressed={musicPlaying && !musicMuted}
-        title={musicPlaying && !musicMuted ? "Mute music" : "Unmute music"}
+        aria-label={musicMuted ? "Unmute music" : "Mute music"}
+        aria-pressed={!musicMuted}
+        title={musicMuted ? "Unmute music" : "Mute music"}
         onClick={(event) => {
           event.stopPropagation();
           toggleMusic();
         }}
       >
-        {musicPlaying && !musicMuted ? <Volume2 size={16} aria-hidden="true" /> : <VolumeX size={16} aria-hidden="true" />}
+        {musicMuted ? <VolumeX size={16} aria-hidden="true" /> : <Volume2 size={16} aria-hidden="true" />}
       </button>
       {showEnvelope && (
         <>
           {/* ===== Envelope face (full screen, ornate blush pattern) ===== */}
           <div className="face pattern" key={`face-${theme.id}`}>
             <div className="inner-shade" aria-hidden="true" />
-
-            {/* Revealed monogram — hidden beneath the lowered flap until opened */}
-            <div className="reveal" aria-hidden={!open}>
-            <img
-                src={srLogoDark}
-                alt="wax seal"
-                className="block h-30 w-30 rounded-full object-cover drop-shadow-[0_10px_24px_rgba(0,0,0,0.25)]"
-              // aria-hidden={opened}
-              />
-              <p className="save">25 Years of Love</p>
-              <p className="date serif">December 8, 2026</p>
-              <p className="date serif">08:00 PM</p>
-            </div>
 
             {/* Envelope style picker — 5 patterns */}
             {/* <div className="theme-picker" role="tablist" aria-label="Envelope style">
@@ -372,6 +360,20 @@ export default function EnvelopeScreen() {
             <span className="mote m4" aria-hidden="true" />
           </div>
 
+          <div className="envelope-content">
+            {/* Revealed monogram — hidden beneath the lowered flap until opened */}
+            <div className="reveal" aria-hidden={!open}>
+            <img
+                src={srLogoDark}
+                alt="wax seal"
+                className="block h-30 w-30 rounded-full object-cover drop-shadow-[0_10px_24px_rgba(0,0,0,0.25)]"
+              // aria-hidden={opened}
+              />
+              <p className="save">25 Years of Love</p>
+              <p className="date serif">December 8, 2026</p>
+              <p className="date serif">08:00 PM</p>
+            </div>
+
             {/* "You are invited" block — printed on the envelope body */}
             <div className="invited">
               <Ornament className="orn" />
@@ -382,6 +384,8 @@ export default function EnvelopeScreen() {
               </span>
             </div>
 
+
+          </div>
 
           {/* ===== Cast shadow of the flap on the face ===== */}
           <div className="cast" aria-hidden="true" />

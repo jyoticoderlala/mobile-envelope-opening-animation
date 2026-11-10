@@ -174,6 +174,32 @@
 }
 
 /* ---------------- Revealed monogram ---------------- */
+.envelope-content { display: contents; }
+.env-screen.is-open .envelope-content {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(18px, 3svh, 28px);
+  padding: calc(54px + env(safe-area-inset-top, 0px)) 16px calc(84px + env(safe-area-inset-bottom, 0px));
+  pointer-events: none;
+}
+.env-screen.is-open .envelope-content > .reveal,
+.env-screen.is-open .envelope-content > .invited {
+  position: relative;
+  top: auto;
+  left: auto;
+  right: auto;
+  flex: 0 0 auto;
+  width: 100%;
+}
+.env-screen.is-open .envelope-content > .reveal { gap: clamp(8px, 1.8svh, 12px); }
+.envelope-content .reveal > img { width: clamp(88px, 21svh, 120px); height: auto; aspect-ratio: 1; }
+.envelope-content .reveal .save { font-size: clamp(.75rem, 2.6vw, 1rem); }
+.envelope-content .reveal .date { font-size: clamp(1.05rem, 4.6vw, 1.32rem); }
 .reveal {
   position: absolute;
   top: 12%;
@@ -739,4 +765,22 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .envelope-scroll-arrow { animation: none; }
+}
+
+@media (max-height: 540px) {
+  .env-screen.is-open .envelope-content {
+    padding: calc(20px + env(safe-area-inset-top, 0px)) 16px calc(24px + env(safe-area-inset-bottom, 0px));
+    gap: 14px;
+  }
+  .env-screen.is-open .envelope-content > .reveal { gap: 6px; }
+  .envelope-content .reveal > img { width: 88px; }
+  .envelope-content .reveal .save { font-size: .7rem; }
+  .envelope-content .reveal .date { font-size: 1.05rem; }
+  .envelope-content .invited-title { margin-block: 10px; font-size: 1.05rem; }
+  .envelope-content .invited .orn { width: min(210px, 58vw); }
+  .envelope-content .invited-heart { margin-top: 4px; }
+  .envelope-scroll-hint { width: 44px; height: 64px; padding: 4px; gap: 4px; right: calc(12px + env(safe-area-inset-right, 0px)); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); }
+  .envelope-story-label { display: none; }
+  .envelope-scroll-hint > .heart-pump { width: 13px; height: 13px; }
+  .envelope-story-trail { width: 25px; height: 30px; }
 }
