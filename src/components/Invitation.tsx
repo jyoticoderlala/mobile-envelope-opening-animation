@@ -568,8 +568,7 @@ Join us for an unforgettable evening filled with laughter, music, and togetherne
         <p className="iv-welcome-kicker">With open hearts</p>
         <h2 className="serif">Your presence is our greatest gift</h2>
         <p className="iv-welcome-message">
-          We can’t wait to welcome you with warm hugs and happy hearts and to enjoy
-          an evening filled with love, laughter and beautiful memories.
+          We can’t wait to welcome you with warm hugs and happy hearts.
         </p>
         <span className="iv-welcome-signature serif">With love,<br />Sachin &amp; Rukman</span>
       </section>
