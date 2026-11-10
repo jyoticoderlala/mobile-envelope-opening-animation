@@ -108,14 +108,14 @@
   animation: faceIn 0.9s ease both;
 }
 .env-screen.is-open .face {
-  transform: scale(1.045); /* cinematic push-in as it opens */
+  transform: scale(1.02); /* Keep the invitation text within the screen while opening. */
 }
 
 /* ---------------- Confetti burst on open ---------------- */
 .burst {
   position: absolute;
   left: 50%;
-  top: 55%;
+  top: calc(50% - 70px);
   width: 0;
   height: 0;
   z-index: 46;
@@ -246,10 +246,11 @@
 /* ---------------- "You are invited" block ---------------- */
 .invited {
   position: absolute;
-  top: 59%;
+  top: calc(50% - 30px);
   left: 0;
   right: 0;
-  z-index: 2;
+  z-index: 8;
+  pointer-events: none;
   text-align: center;
   animation: rise 0.9s cubic-bezier(0.2, 0.9, 0.3, 1) 0.15s both;
 }
@@ -269,11 +270,13 @@
 }
 .invited-title {
   margin: 14px 0;
+  padding-inline: 12px;
   font-weight: 600;
   text-transform: uppercase;
-  font-size: clamp(1.05rem, 4.8vw, 1.5rem);
-  letter-spacing: 0.4em;
-  text-indent: 0.4em;
+  font-size: clamp(0.95rem, 4vw, 1.3rem);
+  letter-spacing: 0.18em;
+  text-indent: 0.18em;
+  text-wrap: balance;
   color: var(--taupe-deep, #7c4f3a);
 }
 .invited-heart {
@@ -281,7 +284,7 @@
   margin-top: 10px;
   color: var(--taupe);
   opacity: 0.9;
-  animation: heartbeat 1.8s ease-in-out infinite;
+
 }
 @keyframes heartbeat {
   0%, 100% { transform: scale(1); }
@@ -515,7 +518,7 @@
   position: absolute;
   z-index: 10;
   left: 50%;
-  top: 55%;
+  top: calc(50% - 70px);
   transform: translate(-50%, -50%);
   width: clamp(104px, 30vw, 138px);
   aspect-ratio: 1;
@@ -536,8 +539,30 @@
   pointer-events: none;
 }
 .seal-in {
+  position: relative;
   display: block;
   animation: sealPop 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) 0.5s both;
+}
+.seal-in::after,
+.iv-close-seal::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: linear-gradient(115deg, transparent 42%, rgba(255, 240, 205, .4) 50%, transparent 58%);
+  background-size: 300% 100%;
+  background-position: 100% 0;
+  opacity: 0;
+  pointer-events: none;
+  animation: sealChampagneShine 8s ease-in-out 2s infinite;
+}
+@keyframes sealChampagneShine {
+  0%, 72% { background-position: 100% 0; opacity: 0; }
+  76% { opacity: 1; }
+  94%, 100% { background-position: 0 0; opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .seal-in::after, .iv-close-seal::after { animation: none; opacity: 0; }
 }
 @keyframes sealPop {
   from { transform: scale(0.3); opacity: 0; }
@@ -662,4 +687,56 @@
   .pulse-ring {
     animation: none !important;
   }
+}
+
+/* Small music control stays in the corner while the invitation scrolls. */
+.music-corner-toggle {
+  position: absolute;
+  top: calc(24px + env(safe-area-inset-top, 0px));
+  right: calc(16px + env(safe-area-inset-right, 0px));
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid rgba(198, 161, 107, .6);
+  border-radius: 50%;
+  background: rgba(255, 249, 241, .92);
+  color: #784b49;
+  box-shadow: 0 3px 10px rgba(56, 12, 28, .14);
+  cursor: pointer;
+}
+.music-corner-toggle:active { transform: scale(.94); }
+.music-corner-toggle:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+
+.envelope-scroll-hint {
+  position: absolute;
+  right: calc(20px + env(safe-area-inset-right, 0px));
+  bottom: calc(24px + max(20px, env(safe-area-inset-bottom, 0px)));
+  z-index: 12;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  width: 90px;
+  height: 110px;
+  padding: 12px 6px 8px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: #e9b8a8;
+  cursor: pointer;
+}
+.envelope-story-label { font-size: 8px; font-weight: 500; line-height: 1.2; text-transform: uppercase; color: #efd6af; white-space: nowrap; }
+.envelope-story-trail { flex-shrink: 0; margin-top: -6px; color: #d7b675; overflow: visible; }
+.envelope-scroll-arrow { animation: envelopeArrowFloat 1.8s ease-in-out infinite; }
+.envelope-scroll-hint:focus-visible { outline: 1px solid currentColor; outline-offset: 3px; }
+@keyframes envelopeArrowFloat {
+  0%, 100% { opacity: .55; transform: translateY(0); }
+  50% { opacity: 1; transform: translateY(4px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .envelope-scroll-arrow { animation: none; }
 }

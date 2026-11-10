@@ -1,25 +1,17 @@
 import { useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
-import {
-  Heart,
-  Pause,
-  Play,
-  RotateCcw,
-  SkipBack,
-  SkipForward,
-  Sparkles,
-} from "lucide-react";
+import { Heart, Volume2, VolumeX } from "lucide-react";
 import Ornament from "./Ornament";
 import srLogoDark from "@/assets/sr-logo-dark.png";
 // import WaxSeal from "./WaxSeal";
 import Invitation from "./Invitation";
 import Burst from "./Burst";
+import ScrollHint from "./ScrollHint";
 import { THEMES } from "../themes";
 import "./envelope.css";
 
 type InvitePhase = "hidden" | "shown" | "leaving";
 
-const ENVELOPE_READ_HOLD_MS = 5_000;
 type Song =
   | { title: string; localSrc: string; remoteSrc?: string }
   | { title: string; localSrc?: string; remoteSrc: string };
@@ -44,9 +36,11 @@ export default function EnvelopeScreen() {
   const [invite, setInvite] = useState<InvitePhase>("hidden");
   const [themeIdx] = useState(4);
   const [musicPlaying, setMusicPlaying] = useState(false);
+  const [musicMuted, setMusicMuted] = useState(false);
   const [songIndex, setSongIndex] = useState(0);
   const theme = THEMES[themeIdx];
   const timers = useRef<number[]>([]);
+  const touchStartY = useRef<number | null>(null);
   const musicRef = useRef<HTMLAudioElement>(null);
 
   const clearTimers = () => {
@@ -59,29 +53,26 @@ export default function EnvelopeScreen() {
     setOpen(true);
     const music = musicRef.current;
     if (music) {
+      music.muted = musicMuted;
       void music.play().then(() => setMusicPlaying(true)).catch(() => setMusicPlaying(false));
     }
     clearTimers();
-    /* Keep the revealed monogram and date visible long enough to read. */
-    timers.current.push(window.setTimeout(() => setInvite("shown"), ENVELOPE_READ_HOLD_MS));
   };
 
-  const sealEnvelope = () => {
-    clearTimers();
-    setOpen(false);
-    setInvite("hidden");
-    musicRef.current?.pause();
-    setMusicPlaying(false);
+  const advanceOnScroll = () => {
+    if (open && invite === "hidden") setInvite("shown");
   };
 
   const toggleMusic = () => {
     const music = musicRef.current;
     if (!music) return;
-    if (music.paused) {
+    if (music.paused || music.muted) {
+      music.muted = false;
+      setMusicMuted(false);
       void music.play().then(() => setMusicPlaying(true)).catch(() => setMusicPlaying(false));
     } else {
-      music.pause();
-      setMusicPlaying(false);
+      music.muted = true;
+      setMusicMuted(true);
     }
   };
 
@@ -137,14 +128,47 @@ export default function EnvelopeScreen() {
   const showEnvelope = invite !== "shown";
 
   return (
-    <div className={`env-screen${open ? " is-open" : ""}`} style={style}>
+    <div
+      className={`env-screen${open ? " is-open" : ""}`}
+      style={style}
+      onClick={invite === "hidden" ? openEnvelope : undefined}
+      onWheel={(event) => {
+        if (event.deltaY > 0) advanceOnScroll();
+      }}
+      onTouchStart={(event) => {
+        touchStartY.current = event.touches[0]?.clientY ?? null;
+      }}
+      onTouchEnd={(event) => {
+        const endY = event.changedTouches[0]?.clientY;
+        if (touchStartY.current !== null && endY !== undefined && touchStartY.current - endY > 30) {
+          advanceOnScroll();
+        }
+        touchStartY.current = null;
+      }}
+    >
       <audio
         ref={musicRef}
+        muted={musicMuted}
         preload="none"
         src={getSongSource(SONGS[songIndex])}
         onError={useRemoteFallback}
+        onPlay={() => setMusicPlaying(true)}
+        onPause={() => setMusicPlaying(false)}
         onEnded={() => switchSong(1)}
       />
+      <button
+        type="button"
+        className="music-corner-toggle"
+        aria-label={musicPlaying && !musicMuted ? "Mute music" : "Unmute music"}
+        aria-pressed={musicPlaying && !musicMuted}
+        title={musicPlaying && !musicMuted ? "Mute music" : "Unmute music"}
+        onClick={(event) => {
+          event.stopPropagation();
+          toggleMusic();
+        }}
+      >
+        {musicPlaying && !musicMuted ? <Volume2 size={16} aria-hidden="true" /> : <VolumeX size={16} aria-hidden="true" />}
+      </button>
       {showEnvelope && (
         <>
           {/* ===== Envelope face (full screen, ornate blush pattern) ===== */}
@@ -162,16 +186,6 @@ export default function EnvelopeScreen() {
               <p className="save">25 Years of Love</p>
               <p className="date serif">December 8, 2026</p>
               <p className="date serif">08:00 PM</p>
-            </div>
-
-            {/* "You are invited" block — printed on the envelope body */}
-            <div className="invited">
-              <Ornament className="orn" />
-              <h1 className="invited-title serif">You Are Cordially Invited</h1>
-              <Ornament className="orn" flip />
-              <span className="invited-heart">
-                <Heart size={11} fill="currentColor" strokeWidth={0} />
-              </span>
             </div>
 
             {/* Envelope style picker — 5 patterns */}
@@ -271,6 +285,17 @@ export default function EnvelopeScreen() {
             <span className="mote m4" aria-hidden="true" />
           </div>
 
+            {/* "You are invited" block — printed on the envelope body */}
+            <div className="invited">
+              <Ornament className="orn" />
+              <h1 className="invited-title serif">You Are Cordially Invited</h1>
+              <Ornament className="orn" flip />
+              <span className="invited-heart">
+                <Heart className="heart-pump" size={11} fill="currentColor" strokeWidth={0} />
+              </span>
+            </div>
+
+
           {/* ===== Cast shadow of the flap on the face ===== */}
           <div className="cast" aria-hidden="true" />
 
@@ -281,7 +306,6 @@ export default function EnvelopeScreen() {
             role="button"
             tabIndex={0}
             aria-label="Open invitation"
-            onClick={openEnvelope}
             onKeyDown={(e) => {
               if (e.key === "Enter" || e.key === " ") openEnvelope();
             }}
@@ -305,7 +329,7 @@ export default function EnvelopeScreen() {
           </div>
 
           {/* ===== Gold wax seal ===== */}
-          <button type="button" className="seal" aria-label="Tap to open" onClick={openEnvelope}>
+          <button type="button" className="seal" aria-label="Tap to open">
             <span className="seal-glow" aria-hidden="true" />
             <span className="seal-in">
               {/* <WaxSeal /> */}
@@ -320,6 +344,7 @@ export default function EnvelopeScreen() {
 
           {/* ===== Confetti burst when the seal breaks ===== */}
           {open && <Burst />}
+          {open && invite === "hidden" && <ScrollHint onClick={advanceOnScroll} />}
         </>
       )}
 
@@ -328,7 +353,7 @@ export default function EnvelopeScreen() {
         <Invitation
           leaving={invite === "leaving"}
           onSeal={closeInvite}
-          musicPlaying={musicPlaying}
+          musicPlaying={musicPlaying && !musicMuted}
           onToggleMusic={toggleMusic}
         />
       )}

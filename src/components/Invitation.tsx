@@ -1,10 +1,9 @@
 import srLogoDark from "@/assets/sr-logo-dark.png";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 
 import sailing_through_life_together from "@/assets/sailing-through-life-together.webp";
 
-import bright_lights_warm_love from "@/assets/bright-lights-warm-love.webp";
 import fantastic_four from "@/assets/fantastic-four.webp";
 import flowers_for_a_lasting_love from "@/assets/flowers-for-a-lasting-love.webp";
 import never_letting_go from "@/assets/never-letting-go.webp";
@@ -13,17 +12,19 @@ import she_said_yes_again_and_again from "@/assets/she-said-yes-again-and-again.
 import silver_looks_good_on_us from "@/assets/silver-looks-good-on-us.webp";
 import to_every_sunset_together from "@/assets/to-every-sunset-together.webp";
 import where_it_all_began from "@/assets/where-it-all-began.webp";
-
 import noura from "@/assets/noura-1.webp";
+
 import {
   ChevronDown,
   Heart,
   MapPin,
-  RotateCcw,
+  Sparkles,
 } from "lucide-react";
 import Ornament from "./Ornament";
+import ScrollHint from "./ScrollHint";
 import FallingLeaves from "./FallingLeaves";
 import { Bloom, Sprig, StationeryFrame } from "./Florals";
+import TextType from "./TextType";
 import "./invite.css";
 import heroSection from "@/assets/sr-5.webp";
 
@@ -41,7 +42,6 @@ const HERO_IMAGES = [
 ];
 const FLORAL_IMG =
   "https://images.pexels.com/photos/13656187/pexels-photo-13656187.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=627&w=1200";
-const VENUE_IMG = noura;
 const MOMENTS = [
   {
     img: silver_looks_good_on_us,
@@ -155,8 +155,9 @@ const JOURNEY = [
 
 const VENUE_NAME = "Noura Chandigarh - The Green Escape";
 const VENUE_ADDR = "Near Ramgarh fort,  SAS Nagar, Chandigarh, India";
-const MAPS_URL = `https://share.google/w669jLCd5p3TOxEoV`;
-const ANNIVERSARY_DATE = new Date("2026-12-08T20:00:00");
+const DIRECTIONS_URL = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(`${VENUE_NAME}, ${VENUE_ADDR}`)}`;
+const MAPS_URL = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${VENUE_NAME}, ${VENUE_ADDR}`)}`;
+const ANNIVERSARY_DATE = new Date("2026-12-08T20:00:00+05:30");
 
 /** scroll-reveal delay helper */
 const rv = (d?: string): CSSProperties => ({ ["--d" as string]: d ?? "0s" });
@@ -166,19 +167,20 @@ const rv = (d?: string): CSSProperties => ({ ["--d" as string]: d ?? "0s" });
 function useCountdown(target: Date) {
   const calc = () => {
     const diff = Math.max(0, target.getTime() - Date.now());
+    const totalSeconds = Math.ceil(diff / 1000);
     return {
-      days: Math.floor(diff / 86400000),
-      hours: Math.floor(diff / 3600000) % 24,
-      mins: Math.floor(diff / 60000) % 60,
-      secs: Math.floor(diff / 1000) % 60,
+      complete: totalSeconds === 0,
+      days: Math.floor(totalSeconds / 86400),
+      hours: Math.floor(totalSeconds / 3600) % 24,
+      mins: Math.floor(totalSeconds / 60) % 60,
+      secs: totalSeconds % 60,
     };
   };
   const [t, setT] = useState(calc);
   useEffect(() => {
     const id = setInterval(() => setT(calc()), 1000);
     return () => clearInterval(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [target]);
   return t;
 }
 
@@ -191,6 +193,10 @@ function useScrollReveal(
     const root = containerRef.current;
     if (!root) return;
     const els = root.querySelectorAll(".rv");
+    if (!("IntersectionObserver" in window) || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      els.forEach((el) => el.classList.add("on"));
+      return;
+    }
     const io = new IntersectionObserver(
       (entries) => {
         entries.forEach((e) => {
@@ -200,29 +206,35 @@ function useScrollReveal(
           }
         });
       },
-      { root, threshold: 0.12 }
+      { root, threshold: 0, rootMargin: "0px 0px 20px 0px" }
     );
     els.forEach((el) => io.observe(el));
     return () => io.disconnect();
   }, [containerRef, active]);
 }
 
-export default function Invitation({
-  leaving,
-  onSeal,
-  musicPlaying,
-  onToggleMusic,
-}: {
+export default function Invitation(props: {
   leaving: boolean;
   onSeal: () => void;
   musicPlaying: boolean;
   onToggleMusic: () => void;
 }) {
+  const { leaving, onSeal } = props;
   const rootRef = useRef<HTMLDivElement>(null);
+  const coverRef = useRef<HTMLElement>(null);
   const [entered, setEntered] = useState(false);
   const [heroIndex, setHeroIndex] = useState(0);
+  const galleryRef = useRef<HTMLDivElement>(null);
+  const galleryDrag = useRef<{ x: number; left: number } | null>(null);
+  const [memoryIndex, setMemoryIndex] = useState(0);
   const t = useCountdown(ANNIVERSARY_DATE);
 
+  // Enter at the hero; the opened envelope remains available above it.
+  useLayoutEffect(() => {
+    const root = rootRef.current;
+    const cover = coverRef.current;
+    if (root && cover) root.scrollTo({ top: cover.offsetHeight, behavior: "instant" });
+  }, []);
 
   /* Animate the sheet up after mount */
   useEffect(() => {
@@ -254,12 +266,12 @@ export default function Invitation({
       if (raf) return;
       raf = requestAnimationFrame(() => {
         raf = 0;
-        const y = root.scrollTop;
-        root.style.setProperty("--px", `${y * 0.32}px`);
+        const y = Math.max(0, root.scrollTop - (coverRef.current?.offsetHeight ?? 0));
+        root.style.setProperty("--px", `${Math.min(y * 0.32, root.clientHeight * 0.03)}px`);
         root.style.setProperty("--py", `${y * 0.22}px`);
-        root.style.setProperty("--ph", `${y * 0.16}px`);
+        root.style.setProperty("--ph", `${Math.min(y * 0.16, 12)}px`);
         const max = root.scrollHeight - root.clientHeight;
-        root.style.setProperty("--prog", String(max > 0 ? y / max : 0));
+        root.style.setProperty("--prog", String(max > 0 ? root.scrollTop / max : 0));
       });
     };
     onScroll();
@@ -289,6 +301,59 @@ export default function Invitation({
       {/* ===== Scroll progress ribbon ===== */}
       <span className="iv-progress" aria-hidden="true" />
 
+      <section ref={coverRef} className="iv-envelope-page" aria-label="Opened anniversary envelope">
+        <div className="iv-envelope-page-copy">
+          <img src={srLogoDark} alt="Sachin and Rukman monogram" />
+          <p className="iv-envelope-years">25 Years of Love</p>
+          <p className="iv-envelope-date serif">December 8, 2026</p>
+          <p className="iv-envelope-time serif">08:00 PM</p>
+          <Ornament className="orn" />
+          <h2 className="serif">You Are<br />Cordially Invited</h2>
+          <Ornament className="orn" flip />
+          <Heart className="heart-pump" size={12} fill="currentColor" strokeWidth={0} aria-hidden="true" />
+        </div>
+        <ScrollHint onClick={() => {
+          rootRef.current?.scrollTo({
+            top: coverRef.current?.offsetHeight ?? 0,
+            behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth",
+          });
+        }} />
+      </section>
+
+      <div className="iv-opening">
+      {/* ================= COUNTDOWN ================= */}
+      <section className="iv-count band">
+        <p className="iv-count-title">
+          <span aria-hidden="true" />
+          <span className="serif">The Countdown Begins</span>
+          <span aria-hidden="true" />
+        </p>
+        {t.complete ? (
+          <p className="iv-count-celebration serif" role="status">
+            Today we celebrate 25 years of love
+          </p>
+        ) : (
+          <>
+            <div className="iv-count-inner rv">
+              {countdownCells.map(([v, label]) => (
+                <div className="cd-cell" key={label}>
+                  <span className="cd-num serif" key={`${label}-${v}`}>
+                    {String(v).padStart(2, "0")}
+                  </span>
+                  <span className="cd-label">{label}</span>
+                </div>
+              ))}
+            </div>
+            <p className="iv-count-sub">until we celebrate 25 years of love</p>
+          </>
+        )}
+      </section>
+
+      {/* Heart chip between the countdown and hero */}
+      <span className="iv-seam" aria-hidden="true">
+        <Heart className="heart-pump" size={13} fill="currentColor" strokeWidth={0} />
+      </span>
+
       {/* ================= HERO ================= */}
       <header className="iv-hero">
         {/* ===== Stationery frame around the first-screen image ===== */}
@@ -307,7 +372,13 @@ export default function Invitation({
         <div className="iv-hero-veil" />
         <div className="iv-hero-copy">
           <p className="iv-kicker rv" style={rv(".1s")}>
-            Celebrating twenty-five years together
+            <TextType
+              text="Celebrating twenty-five years together"
+              typingSpeed={100}
+              startDelay={1100}
+            />
+            <Sparkles className="iv-kicker-star iv-kicker-star-left" size={12} aria-hidden="true" />
+            <Sparkles className="iv-kicker-star iv-kicker-star-right" size={10} aria-hidden="true" />
           </p>
           <h1 className="iv-names serif rv" style={rv(".25s")}>
             Sachin <br />& <br /> Rukman
@@ -319,11 +390,6 @@ export default function Invitation({
             <p>08:00 PM</p>
             <Ornament className="orn light" flip />
           </div>
-          <p className="iv-hero-tag rv" style={rv(".55s")}>
-            <span className="iv-hero-tag-line" aria-hidden="true" />
-            <span className="serif">The Countdown Begins</span>
-            <span className="iv-hero-tag-line" aria-hidden="true" />
-          </p>
         </div>
         
         <div className="iv-scrollcue">
@@ -331,26 +397,18 @@ export default function Invitation({
           <ChevronDown size={16} />
         </div>
       </header>
+      </div>
 
-      {/* Heart chip straddling the hero / countdown seam */}
-      <span className="iv-seam" aria-hidden="true">
-        <Heart size={13} fill="currentColor" strokeWidth={0} />
-      </span>
-
-      {/* ================= COUNTDOWN ================= */}
-      <section className="iv-count band">
-        <div className="iv-count-inner rv">
-          {countdownCells.map(([v, label]) => (
-            <div className="cd-cell" key={label}>
-              <span className="cd-num serif" key={`${label}-${v}`}>
-                {String(v).padStart(2, "0")}
-              </span>
-              <span className="cd-label">{label}</span>
-            </div>
-          ))}
+      <section className="iv-anniversary rv" aria-label="25 years of love and togetherness">
+        <div className="iv-anniversary-emblem">
+          <Sparkles className="iv-anniversary-spark" size={15} aria-hidden="true" />
+          <span className="iv-anniversary-number serif">25</span>
+          <span className="iv-anniversary-years">YEARS</span>
+          <span className="iv-anniversary-rule" aria-hidden="true" />
+          <span className="iv-anniversary-caption">of love &amp; togetherness</span>
         </div>
-        <p className="iv-count-sub">until we celebrate 25 years of love</p>
       </section>
+
 
       {/* ================= INVITATION TEXT ================= */}
       <section className="iv-sec iv-hello">
@@ -397,17 +455,80 @@ Join us for an unforgettable evening filled with laughter, music, and togetherne
           <h2 className="iv-sec-title font-bold! serif rv" style={rv(".08s")}>
             Moments in bloom
           </h2>
+          <p className="m-swipe-hint serif">Slide through our memories</p>
         </div>
-        <div className="m-row">
+        <div
+          className="m-row"
+          ref={galleryRef}
+          role="region"
+          aria-label="Memories photo album"
+          tabIndex={0}
+          onPointerDown={(event) => {
+            if (event.pointerType !== "mouse" || event.button !== 0) return;
+            galleryDrag.current = { x: event.clientX, left: event.currentTarget.scrollLeft };
+            event.currentTarget.setPointerCapture(event.pointerId);
+            event.currentTarget.style.scrollSnapType = "none";
+          }}
+          onPointerMove={(event) => {
+            const drag = galleryDrag.current;
+            if (drag) event.currentTarget.scrollLeft = drag.left + drag.x - event.clientX;
+          }}
+          onPointerUp={(event) => {
+            const drag = galleryDrag.current;
+            if (!drag) return;
+            const row = event.currentTarget;
+            const cards = Array.from(row.children) as HTMLElement[];
+            const distance = cards[1].offsetLeft - cards[0].offsetLeft;
+            const moved = drag.x - event.clientX;
+            const index = Math.max(0, Math.min(cards.length - 1,
+              Math.round(drag.left / distance) + (Math.abs(moved) > 40 ? Math.sign(moved) : 0)));
+            galleryDrag.current = null;
+            row.style.scrollSnapType = "";
+            row.scrollTo({ left: cards[index].offsetLeft - cards[0].offsetLeft,
+              behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" });
+          }}
+          onLostPointerCapture={(event) => {
+            galleryDrag.current = null;
+            event.currentTarget.style.scrollSnapType = "";
+          }}
+          onScroll={(event) => {
+            const row = event.currentTarget;
+            const cards = Array.from(row.children) as HTMLElement[];
+            const first = cards[0]?.offsetLeft ?? 0;
+            let closest = 0;
+            cards.forEach((card, index) => {
+              if (Math.abs(card.offsetLeft - first - row.scrollLeft) < Math.abs(cards[closest].offsetLeft - first - row.scrollLeft)) closest = index;
+            });
+            if (row.scrollLeft >= row.scrollWidth - row.clientWidth - 2) closest = cards.length - 1;
+            setMemoryIndex(closest);
+          }}
+        >
           {MOMENTS.map((m) => (
             <figure
-              className="m-card rv"
+              className="m-card"
               key={m.caption}
               style={{ ...rv(m.d), ["--tilt" as string]: m.tilt }}
             >
-              <img src={m.img} alt={m.alt} loading="lazy" />
+              <img src={m.img} alt={m.alt} loading="eager" decoding="async" draggable={false} />
               <p className="iv-script serif text-center pb-0 text-sm! font-bold!">{m.caption}</p>
             </figure>
+          ))}
+        </div>
+        <div className="m-album-dots" aria-label="Choose a memory">
+          {MOMENTS.map((memory, index) => (
+            <button
+              key={memory.caption}
+              type="button"
+              aria-label={`Show memory ${index + 1}: ${memory.alt}`}
+              aria-current={memoryIndex === index ? "true" : undefined}
+              onClick={() => {
+                const row = galleryRef.current;
+                if (!row) return;
+                const first = row.children[0] as HTMLElement;
+                const card = row.children[index] as HTMLElement;
+                row.scrollTo({ left: card.offsetLeft - first.offsetLeft, behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" });
+              }}
+            ><span /></button>
           ))}
         </div>
       </section>
@@ -431,7 +552,7 @@ Join us for an unforgettable evening filled with laughter, music, and togetherne
           {JOURNEY.map((j) => (
             <article className="j-item rv" key={j.title} style={rv(j.d)}>
               <span className="j-dot">
-                <Heart size={13} fill="currentColor" strokeWidth={0} />
+                <Heart className="heart-pump" size={13} fill="currentColor" strokeWidth={0} />
               </span>
               <div className="j-card">
                 <span className="j-date">{j.date}</span>
@@ -444,6 +565,17 @@ Join us for an unforgettable evening filled with laughter, music, and togetherne
       </section>
 
       {/* ================= VENUE ================= */}
+      <section className="iv-welcome rv" aria-label="A warm welcome">
+        <Heart className="heart-pump" size={18} fill="currentColor" strokeWidth={0} aria-hidden="true" />
+        <p className="iv-welcome-kicker">With open hearts</p>
+        <h2 className="serif">Your presence is our greatest gift</h2>
+        <p className="iv-welcome-message">
+          We can’t wait to welcome you with warm hugs, happy hearts, and an evening
+          full of beautiful memories. Come celebrate love, laughter, and twenty-five
+          wonderful years with us.
+        </p>
+        <span className="iv-welcome-signature serif">With love, Sachin &amp; Rukman</span>
+      </section>
       <section className="iv-sec iv-venue">
         <span className="wm wm-venue">
           <Sprig />
@@ -452,7 +584,22 @@ Join us for an unforgettable evening filled with laughter, music, and togetherne
           The Venue
         </h2>
         <figure className="iv-venue-card rv" style={rv(".16s")}>
-          <img src={VENUE_IMG} alt="The venue terrace at dusk" loading="lazy" />
+          <div className="iv-venue-photo" style={{ backgroundImage: `url(${noura})` }}>
+            <div className="iv-venue-location">
+              <span className="serif">Noura</span>
+              <span className="iv-venue-route-label">Find your way to our celebration</span>
+            </div>
+            <a
+              className="iv-venue-directions"
+              href={DIRECTIONS_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={`Get directions to ${VENUE_NAME}`}
+            >
+              <MapPin size={15} aria-hidden="true" />
+              Directions
+            </a>
+          </div>
           <figcaption>
             <span className="iv-venue-name serif">{VENUE_NAME}</span>
             <span className="iv-venue-addr">
@@ -520,7 +667,7 @@ Join us for an unforgettable evening filled with laughter, music, and togetherne
             {form.attending === "yes" && (
               <div className="ok-chips">
                 <span>
-                  <Heart size={12} fill="currentColor" strokeWidth={0} /> {form.guests}{" "}
+                  <Heart className="heart-pump" size={12} fill="currentColor" strokeWidth={0} /> {form.guests}{" "}
                   {form.guests > 1 ? "guests" : "guest"}
                 </span>
                 <span>
@@ -614,25 +761,30 @@ Join us for an unforgettable evening filled with laughter, music, and togetherne
 
       {/* ================= FOOTER ================= */}
       <footer className="iv-footer">
-        <p className="iv-foot-date2 font-bold!">With the blessings of Almighty God & love of our respected <br/>father Sh Sham  Sunder Jindal</p>
-        <img
-          src={srLogoDark}
-          alt="wax seal"
-          className="block h-30 w-30 rounded-full object-cover drop-shadow-[0_10px_24px_rgba(0,0,0,0.25)]"
-        // aria-hidden={opened}
-        />
+        <p className="iv-foot-date2 font-bold!">
+          With the blessings of Almighty God &amp; love of our<br />
+          respected father<br />
+          Sh Sham Sunder Jindal
+        </p>
+        <button
+          type="button"
+          className="iv-close-seal"
+          onClick={onSeal}
+          disabled={leaving}
+          aria-label="Close invitation and seal the envelope"
+          title="Close invitation"
+        >
+          <img src={srLogoDark} alt="" />
+          <span className="iv-close-seal-hint">Tap to seal</span>
+        </button>
         {/* <div className="mono-mini serif">
           <span>A</span>
-          <Heart size={11} fill="currentColor" strokeWidth={0} />
+          <Heart className="heart-pump" size={11} fill="currentColor" strokeWidth={0} />
           <span>R</span>
         </div> */}
                 <p className="iv-foot-names serif">Your gracious presence would be our greatest honour and joy.</p>
         <p className="iv-foot-date font-bold!">December 8, 2026</p>
         <p className="iv-foot-date2 font-bold!">08:00 PM</p>
-        <button type="button" className="iv-btn ghost" onClick={onSeal}>
-          <RotateCcw size={14} />
-          Seal the envelope again
-        </button>
         {/* <button
           type="button"
           className="iv-btn ghost"
@@ -642,12 +794,23 @@ Join us for an unforgettable evening filled with laughter, music, and togetherne
           <Music2 size={14} />
           {musicPlaying ? "Pause romantic music" : "Play romantic music"}
         </button> */}
-        <p className="iv-fine">
-          Made by{' '}
-          <a href="https://coderlala.com" target="_blank" rel="noreferrer">
-            Coderlala Technologies
-          </a>
-        </p>
+        <div className="iv-footer-closing">
+          <div className="iv-footer-emblem" aria-hidden="true">
+            <span />
+            <svg width="72" height="32" viewBox="0 0 72 32" fill="none">
+              <path d="M23 20Q16 12 4 13M49 20Q56 12 68 13" stroke="#baa465" strokeWidth="1" />
+              <path d="M18 15C15 6 4 6 2 10C3 17 12 19 18 15ZM54 15C57 6 68 6 70 10C69 17 60 19 54 15Z" fill="#c3b66e" />
+              <path d="M36 8C28-2 19 6 26 16L36 28L46 16C53 6 44-2 36 8Z" fill="#a9516b" />
+              <circle cx="36" cy="15" r="3" fill="#e4c88f" />
+            </svg>
+            <span />
+          </div>
+          <p className="iv-footer-love">Made with love, for a love that lasts forever.</p>
+          <p className="iv-footer-credit">
+            Crafted by <a href="https://coderlala.com" target="_blank" rel="noreferrer">Coderlala Technologies</a>
+          </p>
+          <div className="iv-footer-finishing-rule" aria-hidden="true"><span /></div>
+        </div>
       </footer>
     </div>
   );

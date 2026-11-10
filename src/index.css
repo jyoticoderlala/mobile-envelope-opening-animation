@@ -31,3 +31,24 @@ body {
     linear-gradient(160deg, #e9c3cd, #d795a9 46%, #b87291 100%);
   background-attachment: fixed;
 }
+
+/* A shared double heartbeat keeps all invitation hearts in the same rhythm. */
+.env-screen .heart-pump,
+.env-screen svg.lucide-heart,
+.env-screen .letter-heart {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: invitationHeartPump 2.2s ease-in-out infinite;
+  animation-delay: var(--d, 0s);
+}
+@keyframes invitationHeartPump {
+  0%, 42%, 100% { transform: scale(1); }
+  12% { transform: scale(1.25); }
+  22% { transform: scale(1); }
+  31% { transform: scale(1.16); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .env-screen .heart-pump,
+.env-screen svg.lucide-heart,
+  .env-screen .letter-heart { animation: none !important; transform: none; }
+}
