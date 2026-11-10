@@ -42,6 +42,44 @@ export default function EnvelopeScreen() {
   const timers = useRef<number[]>([]);
   const touchStartY = useRef<number | null>(null);
   const musicRef = useRef<HTMLAudioElement>(null);
+  const resumeMusicOnReturn = useRef(false);
+  const manuallyMuted = useRef(false);
+  const backgroundPaused = useRef(false);
+  const playRequest = useRef(0);
+  const playPending = useRef(false);
+
+  const playMusic = () => {
+    const music = musicRef.current;
+    if (!music || manuallyMuted.current || backgroundPaused.current || document.hidden) return;
+    const request = ++playRequest.current;
+    playPending.current = true;
+    music.muted = false;
+    void music.play().then(() => {
+      if (request !== playRequest.current) return;
+      playPending.current = false;
+      if (manuallyMuted.current || backgroundPaused.current || document.hidden) {
+        music.muted = true;
+        music.pause();
+        setMusicPlaying(false);
+      } else setMusicPlaying(!music.paused);
+    }).catch(() => {
+      if (request !== playRequest.current) return;
+      playPending.current = false;
+      setMusicPlaying(false);
+    });
+  };
+
+  const pauseBackgroundMusic = () => {
+    const music = musicRef.current;
+    backgroundPaused.current = true;
+    if (!music) return;
+    if (!manuallyMuted.current && (!music.paused || playPending.current)) resumeMusicOnReturn.current = true;
+    ++playRequest.current;
+    playPending.current = false;
+    music.muted = true;
+    music.pause();
+    setMusicPlaying(false);
+  };
 
   const clearTimers = () => {
     timers.current.forEach((id) => window.clearTimeout(id));
@@ -51,11 +89,8 @@ export default function EnvelopeScreen() {
   const openEnvelope = () => {
     if (open) return;
     setOpen(true);
-    const music = musicRef.current;
-    if (music) {
-      music.muted = musicMuted;
-      void music.play().then(() => setMusicPlaying(true)).catch(() => setMusicPlaying(false));
-    }
+    backgroundPaused.current = false;
+    playMusic();
     clearTimers();
   };
 
@@ -64,15 +99,22 @@ export default function EnvelopeScreen() {
   };
 
   const toggleMusic = () => {
+    resumeMusicOnReturn.current = false;
     const music = musicRef.current;
     if (!music) return;
-    if (music.paused || music.muted) {
-      music.muted = false;
+    if (manuallyMuted.current || (music.paused && !playPending.current)) {
+      manuallyMuted.current = false;
+      backgroundPaused.current = false;
       setMusicMuted(false);
-      void music.play().then(() => setMusicPlaying(true)).catch(() => setMusicPlaying(false));
+      playMusic();
     } else {
+      manuallyMuted.current = true;
+      ++playRequest.current;
+      playPending.current = false;
       music.muted = true;
+      music.pause();
       setMusicMuted(true);
+      setMusicPlaying(false);
     }
   };
 
@@ -86,7 +128,7 @@ export default function EnvelopeScreen() {
 
     music.src = getSongSource(SONGS[nextIndex]);
     music.load();
-    void music.play().then(() => setMusicPlaying(true)).catch(() => setMusicPlaying(false));
+    playMusic();
   };
 
   const useRemoteFallback = () => {
@@ -97,7 +139,7 @@ export default function EnvelopeScreen() {
     if (!music || !remoteSrc || music.src.endsWith(remoteSrc)) return;
     music.src = remoteSrc;
     music.load();
-    void music.play().then(() => setMusicPlaying(true)).catch(() => setMusicPlaying(false));
+    playMusic();
   };
 
   const closeInvite = () => {
@@ -107,9 +149,44 @@ export default function EnvelopeScreen() {
     timers.current.push(window.setTimeout(() => setInvite("hidden"), 680));
   };
 
-  useEffect(() => () => {
-    clearTimers();
-    musicRef.current?.pause();
+  useEffect(() => {
+    const music = musicRef.current;
+    return () => {
+      clearTimers();
+      ++playRequest.current;
+      playPending.current = false;
+      if (music) {
+        music.muted = true;
+        music.pause();
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    const resume = () => {
+      const music = musicRef.current;
+      if (document.hidden || !document.hasFocus() || !music) return;
+      backgroundPaused.current = false;
+      if (!resumeMusicOnReturn.current || manuallyMuted.current) return;
+      resumeMusicOnReturn.current = false;
+      playMusic();
+    };
+    const onVisibilityChange = () => {
+      if (document.hidden) pauseBackgroundMusic();
+      else resume();
+    };
+    window.addEventListener("blur", pauseBackgroundMusic);
+    window.addEventListener("focus", resume);
+    window.addEventListener("pagehide", pauseBackgroundMusic);
+    window.addEventListener("pageshow", resume);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => {
+      window.removeEventListener("blur", pauseBackgroundMusic);
+      window.removeEventListener("focus", resume);
+      window.removeEventListener("pagehide", pauseBackgroundMusic);
+      window.removeEventListener("pageshow", resume);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
   }, []);
 
   /* Preload every theme pattern so switching styles is instant */
@@ -131,6 +208,10 @@ export default function EnvelopeScreen() {
     <div
       className={`env-screen${open ? " is-open" : ""}`}
       style={style}
+      onClickCapture={(event) => {
+        const target = event.target;
+        if (target instanceof Element && target.closest('a[target="_blank"]')) pauseBackgroundMusic();
+      }}
       onClick={invite === "hidden" ? openEnvelope : undefined}
       onWheel={(event) => {
         if (event.deltaY > 0) advanceOnScroll();
@@ -152,7 +233,13 @@ export default function EnvelopeScreen() {
         preload="none"
         src={getSongSource(SONGS[songIndex])}
         onError={useRemoteFallback}
-        onPlay={() => setMusicPlaying(true)}
+        onPlay={(event) => {
+          if (manuallyMuted.current || backgroundPaused.current || document.hidden) {
+            event.currentTarget.muted = true;
+            event.currentTarget.pause();
+            setMusicPlaying(false);
+          } else setMusicPlaying(true);
+        }}
         onPause={() => setMusicPlaying(false)}
         onEnded={() => switchSong(1)}
       />

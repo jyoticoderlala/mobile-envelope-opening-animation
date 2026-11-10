@@ -1670,26 +1670,34 @@
     padding-inline: 20px;
   }
   .j-item {
-    grid-template-columns: 40px minmax(0, 1fr);
-    gap: 8px;
+    grid-template-columns: minmax(0, 1fr) 40px minmax(0, 1fr);
     margin-bottom: 24px;
   }
   .j-stem {
-    left: 20px;
+    left: 50%;
   }
   .j-stem.rv,
   .j-stem.rv.on {
     transform: translateX(-50%) scaleY(1);
   }
   .j-dot {
-    grid-column: 1;
+    grid-column: 2;
     width: 36px;
     height: 36px;
   }
-  .j-card,
+  .j-card {
+    min-width: 0;
+    grid-column: 1;
+    text-align: right;
+  }
   .j-item:nth-of-type(even) .j-card {
-    grid-column: 2;
+    grid-column: 3;
     text-align: left;
+  }
+  .j-date {
+    font-size: clamp(.5rem, 2.3vw, .58rem);
+    letter-spacing: .12em;
+    padding-inline: .45rem;
   }
   .m-row {
     gap: 14px;
