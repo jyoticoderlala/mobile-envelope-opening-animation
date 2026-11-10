@@ -866,8 +866,7 @@
 }
 .iv-welcome > svg { display: block; margin: 0 auto 12px; color: var(--rose-deep); }
 .iv-welcome-kicker { margin: 0 auto 12px; width: fit-content; padding: 5px 12px; border-block: 1px solid rgba(198, 161, 107, .4); font-size: .62rem; font-weight: 600; letter-spacing: .22em; text-transform: uppercase; color: #8a6336; }
-.iv-welcome h2 { margin: 0 auto 16px; max-width: 22ch; font-size: clamp(1.65rem, 6.8vw, 2.2rem); font-weight: 600; line-height: 1.15; color: #642d41; text-shadow: 0 2px 12px rgba(198, 161, 107, .12); text-wrap: balance; }
-.iv-welcome-message { margin: 0 auto; max-width: 43ch; font-size: .9rem; font-weight: 500; line-height: 1.85; color: #85505e; }
+.iv-welcome-message { margin: 0 auto; max-width: 43ch; font-size: .9rem; font-weight: 600; line-height: 1.85; color: #85505e; }
 @media (max-width: 600px) {
   .iv-welcome-message > span { display: block; }
 }
@@ -876,13 +875,11 @@
 .iv-welcome + .iv-venue { padding-top: 16px; }
 .iv-welcome.rv.on { animation: none; }
 .iv-welcome.on > p,
-.iv-welcome.on > h2,
 .iv-welcome.on > .iv-welcome-signature {
   animation: welcomeUnfold .85s cubic-bezier(.2, .8, .3, 1) backwards;
 }
 .iv-welcome.on > .iv-welcome-kicker { animation-delay: .05s; }
-.iv-welcome.on > h2 { animation-delay: .18s; }
-.iv-welcome.on > .iv-welcome-message { animation-delay: .32s; }
+.iv-welcome.on > .iv-welcome-message { animation-delay: .18s; }
 .iv-welcome.on > .iv-welcome-signature { animation-delay: .48s; }
 @keyframes welcomeUnfold {
   from { opacity: 0; transform: translateY(7px); }

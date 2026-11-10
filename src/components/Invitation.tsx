@@ -566,7 +566,6 @@ Join us for an unforgettable evening filled with laughter, music, and togetherne
       <section className="iv-welcome rv" aria-label="A warm welcome">
         <Heart className="heart-pump" size={18} fill="currentColor" strokeWidth={0} aria-hidden="true" />
         <p className="iv-welcome-kicker">With open hearts</p>
-        <h2 className="serif">Your presence is our greatest gift</h2>
         <p className="iv-welcome-message">
           <span>We can’t wait to welcome you with</span>{" "}
           <span>warm hugs and happy hearts.</span>
