@@ -868,6 +868,9 @@
 .iv-welcome-kicker { margin: 0 auto 12px; width: fit-content; padding: 5px 12px; border-block: 1px solid rgba(198, 161, 107, .4); font-size: .62rem; font-weight: 600; letter-spacing: .22em; text-transform: uppercase; color: #8a6336; }
 .iv-welcome h2 { margin: 0 auto 16px; max-width: 22ch; font-size: clamp(1.65rem, 6.8vw, 2.2rem); font-weight: 600; line-height: 1.15; color: #642d41; text-shadow: 0 2px 12px rgba(198, 161, 107, .12); text-wrap: balance; }
 .iv-welcome-message { margin: 0 auto; max-width: 43ch; font-size: .9rem; font-weight: 500; line-height: 1.85; color: #85505e; }
+@media (max-width: 600px) {
+  .iv-welcome-message > span { display: block; }
+}
 .iv-welcome-signature { display: block; margin-top: 18px; font-size: 1.2rem; font-weight: 600; font-style: italic; color: #9b3656; }
 .iv-welcome::after { content: ""; display: block; width: 110px; height: 1px; margin: 16px auto 0; background: linear-gradient(90deg, transparent, var(--gold), transparent); }
 .iv-welcome + .iv-venue { padding-top: 16px; }
